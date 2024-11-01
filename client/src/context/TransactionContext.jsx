@@ -39,7 +39,7 @@ export const TransactionsProvider = ({ children }) => {
           timestamp: new Date(transaction.timestamp.toNumber() * 1000).toLocaleString(),
           message: transaction.message,
           keyword: transaction.keyword,
-          amount: parseInt(transaction.amount._hex) / (10 ** 18)
+          amount: ethers.utils.formatEther(transaction.amount)
         }));
 
         console.log(structuredTransactions);
@@ -55,7 +55,9 @@ export const TransactionsProvider = ({ children }) => {
 
   const checkIfWalletIsConnect = async () => {
     try {
-      if (!ethereum) return alert("Please install MetaMask.");
+      if (!ethereum) {
+        alert("Please install MetaMask.");
+      }
 
       const accounts = await ethereum.request({ method: "eth_accounts" });
 
@@ -75,7 +77,7 @@ export const TransactionsProvider = ({ children }) => {
     try {
       if (ethereum) {
         const transactionsContract = createEthereumContract();
-        const currentTransactionCount = await transactionsContract.getTransactionCount();
+        const currentTransactionCount = await transactionsContract.gettransactionCount();
 
         window.localStorage.setItem("transactionCount", currentTransactionCount);
       }
@@ -88,12 +90,16 @@ export const TransactionsProvider = ({ children }) => {
 
   const connectWallet = async () => {
     try {
-      if (!ethereum) return alert("Please install MetaMask.");
+      if (!ethereum) {
+        alert("Please install MetaMask.");
+        return;
+      }
 
       const accounts = await ethereum.request({ method: "eth_requestAccounts", });
 
       setCurrentAccount(accounts[0]);
       window.location.reload();
+      // accounts[0] is set to currentAccount
     } catch (error) {
       console.log(error);
 
@@ -114,7 +120,7 @@ export const TransactionsProvider = ({ children }) => {
             from: currentAccount,
             to: addressTo,
             gas: "0x5208",
-            value: parsedAmount._hex,
+            value: parsedAmount.hex,
           }],
         });
 
@@ -126,7 +132,7 @@ export const TransactionsProvider = ({ children }) => {
         console.log(`Success - ${transactionHash.hash}`);
         setIsLoading(false);
 
-        const transactionsCount = await transactionsContract.getTransactionCount();
+        const transactionsCount = await transactionsContract.gettransactionCount();
 
         setTransactionCount(transactionsCount.toNumber());
         window.location.reload();
@@ -145,19 +151,20 @@ export const TransactionsProvider = ({ children }) => {
     checkIfTransactionsExists();
   }, [transactionCount]);
 
+  const contextValue = React.useMemo(() => ({
+    transactionCount,
+    connectWallet,
+    transactions,
+    currentAccount,
+    isLoading,
+    sendTransaction,
+    handleChange,
+    formData,
+  }), [transactionCount, connectWallet, transactions, currentAccount, isLoading, sendTransaction, handleChange, formData]);
+
+  console.log(contextValue);
   return (
-    <TransactionContext.Provider
-      value={{
-        transactionCount,
-        connectWallet,
-        transactions,
-        currentAccount,
-        isLoading,
-        sendTransaction,
-        handleChange,
-        formData,
-      }}
-    >
+    <TransactionContext.Provider value={contextValue}>
       {children}
     </TransactionContext.Provider>
   );
